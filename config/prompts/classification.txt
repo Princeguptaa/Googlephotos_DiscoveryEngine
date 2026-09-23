@@ -1,0 +1,36 @@
+Analyze this Google Photos user review or post. Extract only what is explicitly
+stated or clearly implied — do not guess or force-fit. Output valid JSON only,
+no extra text.
+
+Fields:
+- is_relevant: yes / no — is this genuinely about finding/retrieving a photo,
+  video, screenshot, or document from memory? 
+  
+  CRITICAL RELEVANCE BOUNDARY EXAMPLES:
+  Mark `is_relevant: yes` for genuine memory/search struggles where a user is trying to locate a photo they know exists:
+  - "search doesn't work like it used to... search by date instead of just names it works perfectly fine"
+  - "I end up just having to scroll... the search for any of my Pic is difficult"
+  - "Now, for some unknown reason, I can't find it anywhere"
+  - "can't find photos I know exist using basic search terms"
+  
+  Mark `is_relevant: no` for data loss, sync issues, app bugs, or feature complaints where the photo is gone or feature broken:
+  - DATA LOSS: "Latest update applied has corrupted my SD card... Opening Google Photos caused my SD card images to be resorted"
+  - DATA LOSS: "Google Photos: The Best Photo Application... but all my 2019 photos disappeared"
+  - APP BUG: "this thing refuses to upload files now."
+  - FEATURE COMPLAINT: "Photos no longer in order after move from iPhone... struggling to find a solution to get favourites folder"
+  - FEATURE COMPLAINT: "automatically hide half of your photos... I wish you could turn off, the button that lets you unhide"
+- content_type: photo / screenshot / document / video / not_mentioned
+- retrieval_scenario: short phrase describing the real situation, e.g.
+  "photo from a trip", "screenshot of a payment", "picture of medicine"
+- what_they_remembered: short phrase
+- what_they_forgot: short phrase
+- search_attempt: short phrase or not_mentioned
+- outcome: found / gave_up / found_via_workaround / not_mentioned
+- failure_point: expression / system_understanding / evaluation / refinement / unknown_unclear
+  (choose ALL that clearly apply — this can be a list, not just one value.
+  Use "unknown_unclear" rather than guessing if the text doesn't make it clear.)
+- workaround_used: short phrase or none
+- evidence_quote: the exact short phrase (max ~15 words) from the review that
+  best supports the failure_point classification
+
+Review: {review_text}

@@ -1,0 +1,82 @@
+classifier:
+  delay_between_calls_sec: 2.0
+  max_retries: 3
+  model: openai/gpt-oss-20b
+  prompt_file: config/prompts/classification.txt
+  provider: groq
+  temperature: 0.0
+collection:
+  app_store:
+    app_id: '962194608'
+    countries:
+    - us
+    - gb
+    - in
+    - au
+    - ca
+    fallback_to_browser: true
+    target_volume: 300
+  forum:
+    base_url: https://support.google.com/photos/community
+    search_queries:
+    - "can't find my photo"
+    - "looking for a photo"
+    - "trying to find a picture"
+    - "know I have this photo"
+    - "where did I save this photo"
+    - "old photo I can't find"
+    - "lost photo"
+    - "missing screenshot"
+    - "find a photo from"
+    - "how to find"
+    - "search not working"
+    - "missing photos"
+    - "cannot find"
+    - "where are my pictures"
+    - "disappeared"
+    - "photo backup missing"
+    - "not showing up in photos"
+    target_volume: 250
+  play_store:
+    app_id: "com.google.android.apps.photos"
+    lang: "en"
+    country: "us"
+    target_volume: 1000
+  reddit:
+    subreddits:
+    - googlephotos
+    - GooglePixel
+    - Android
+    search_queries:
+    - "can't find my photo"
+    - "looking for a photo"
+    - "trying to find a picture"
+    - "know I have this photo"
+    - "where did I save this photo"
+    - "old photo I can't find"
+    - "lost photo"
+    - "missing screenshot"
+    - "find a photo from"
+    - "how to find"
+    - "search not working"
+    - "missing photos"
+    - "cannot find"
+    - "where are my pictures"
+    - "disappeared"
+    - "photo backup missing"
+    - "not showing up in photos"
+
+    target_volume: 350
+filter:
+  exclusion_keywords:
+  - storage full
+  - subscription price
+  - crashes
+  - won't open
+  - ads
+  - backup failed
+  - account locked
+  - payment issue
+validation:
+  random_seed: 42
+  sample_size: 35

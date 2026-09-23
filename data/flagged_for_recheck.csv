@@ -1,0 +1,2 @@
+﻿source,date,rating,url,is_relevant,content_type,retrieval_scenario,what_they_remembered,what_they_forgot,search_attempt,outcome,failure_point,workaround_used,evidence_quote,scenario_type
+play_store,2025-09-17,2.0,,yes,photo,photos in albums,photos they want to find,photos not found by search,AI search rarely finds the photos i want,not_mentioned,evaluation|system_understanding,none,the new ai search rarely finds the photos i want,general_search_quality

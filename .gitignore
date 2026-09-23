@@ -1,0 +1,33 @@
+# Secrets
+.env
+reddit_auth.json
+
+# Pipeline data artifacts
+data/raw/
+data/filtered/
+data/tagged_dataset.csv
+data/error_log.json
+data/summary_stats.json
+data/validation_sample.csv
+
+# Python cache
+__pycache__/
+*.pyc
+*.pyo
+*.egg-info/
+dist/
+build/
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Scratch / test artifacts
+scratch/
+*.png

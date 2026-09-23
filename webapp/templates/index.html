@@ -1,0 +1,647 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta name="description" content="Google Photos Discovery Engine — Classify retrieval failures in user reviews using AI.">
+    <title>Discovery Engine — Google Photos Retrieval Classifier</title>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+
+    <style>
+        /* ── Design Tokens ────────────────────────────────── */
+        :root {
+            --bg-body: #0b0f19;
+            --bg-card: #111827;
+            --bg-card-alt: #1a2235;
+            --bg-input: #0d1322;
+            --border: #1e293b;
+            --border-focus: #6366f1;
+            --text-primary: #f1f5f9;
+            --text-secondary: #94a3b8;
+            --text-dim: #64748b;
+            --accent: #818cf8;
+            --accent-bright: #a5b4fc;
+            --green: #34d399;
+            --green-bg: rgba(52, 211, 153, 0.08);
+            --red: #f87171;
+            --red-bg: rgba(248, 113, 113, 0.08);
+            --amber: #fbbf24;
+            --amber-bg: rgba(251, 191, 36, 0.08);
+            --gradient-hero: linear-gradient(135deg, #6366f1 0%, #8b5cf6 50%, #a855f7 100%);
+            --shadow-card: 0 4px 24px rgba(0, 0, 0, 0.35);
+            --shadow-glow: 0 0 40px rgba(99, 102, 241, 0.12);
+            --radius: 14px;
+            --radius-sm: 8px;
+            --transition: 0.25s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        /* ── Reset & Base ─────────────────────────────────── */
+        *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+        html { scroll-behavior: smooth; }
+        body {
+            font-family: 'Inter', -apple-system, sans-serif;
+            background: var(--bg-body);
+            color: var(--text-primary);
+            min-height: 100vh;
+            line-height: 1.6;
+            -webkit-font-smoothing: antialiased;
+        }
+
+        /* ── Background Glow ──────────────────────────────── */
+        body::before {
+            content: '';
+            position: fixed;
+            top: -40%;
+            left: -20%;
+            width: 80%;
+            height: 80%;
+            background: radial-gradient(ellipse, rgba(99, 102, 241, 0.06) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+        body::after {
+            content: '';
+            position: fixed;
+            bottom: -30%;
+            right: -20%;
+            width: 70%;
+            height: 70%;
+            background: radial-gradient(ellipse, rgba(168, 85, 247, 0.05) 0%, transparent 70%);
+            pointer-events: none;
+            z-index: 0;
+        }
+
+        /* ── Layout ───────────────────────────────────────── */
+        .container {
+            position: relative;
+            z-index: 1;
+            max-width: 780px;
+            margin: 0 auto;
+            padding: 48px 24px 80px;
+        }
+
+        /* ── Header ───────────────────────────────────────── */
+        .header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+        .header__badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            background: rgba(99, 102, 241, 0.1);
+            border: 1px solid rgba(99, 102, 241, 0.2);
+            border-radius: 100px;
+            padding: 6px 16px;
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--accent-bright);
+            letter-spacing: 0.05em;
+            text-transform: uppercase;
+            margin-bottom: 20px;
+        }
+        .header__badge span { font-size: 0.9rem; }
+        .header h1 {
+            font-size: 2.25rem;
+            font-weight: 800;
+            letter-spacing: -0.03em;
+            background: var(--gradient-hero);
+            -webkit-background-clip: text;
+            -webkit-text-fill-color: transparent;
+            background-clip: text;
+            margin-bottom: 12px;
+            line-height: 1.15;
+        }
+        .header__subtitle {
+            font-size: 0.95rem;
+            color: var(--text-secondary);
+            max-width: 560px;
+            margin: 0 auto;
+            line-height: 1.65;
+        }
+
+        /* ── Card ─────────────────────────────────────────── */
+        .card {
+            background: var(--bg-card);
+            border: 1px solid var(--border);
+            border-radius: var(--radius);
+            box-shadow: var(--shadow-card);
+            padding: 32px;
+            margin-bottom: 24px;
+        }
+
+        /* ── Input Area ───────────────────────────────────── */
+        .input-label {
+            display: block;
+            font-size: 0.8rem;
+            font-weight: 600;
+            color: var(--text-secondary);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 10px;
+        }
+        #review-input {
+            width: 100%;
+            min-height: 140px;
+            background: var(--bg-input);
+            border: 1.5px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-primary);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.92rem;
+            padding: 16px;
+            resize: vertical;
+            transition: border-color var(--transition), box-shadow var(--transition);
+            line-height: 1.6;
+        }
+        #review-input:focus {
+            outline: none;
+            border-color: var(--border-focus);
+            box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.15);
+        }
+        #review-input::placeholder { color: var(--text-dim); }
+
+        /* ── Buttons ──────────────────────────────────────── */
+        .btn-classify {
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            width: 100%;
+            padding: 14px 28px;
+            margin-top: 16px;
+            background: var(--gradient-hero);
+            color: #fff;
+            font-family: 'Inter', sans-serif;
+            font-size: 0.95rem;
+            font-weight: 600;
+            border: none;
+            border-radius: var(--radius-sm);
+            cursor: pointer;
+            transition: opacity var(--transition), transform var(--transition);
+        }
+        .btn-classify:hover:not(:disabled) {
+            opacity: 0.92;
+            transform: translateY(-1px);
+        }
+        .btn-classify:disabled {
+            opacity: 0.55;
+            cursor: not-allowed;
+        }
+        .btn-classify .spinner {
+            width: 18px;
+            height: 18px;
+            border: 2.5px solid rgba(255,255,255,0.25);
+            border-top-color: #fff;
+            border-radius: 50%;
+            animation: spin 0.7s linear infinite;
+            display: none;
+        }
+        .btn-classify.loading .spinner { display: inline-block; }
+        .btn-classify.loading .btn-text { display: none; }
+
+        @keyframes spin { to { transform: rotate(360deg); } }
+
+        /* ── Example Buttons ──────────────────────────────── */
+        .examples {
+            margin-top: 20px;
+        }
+        .examples__title {
+            font-size: 0.75rem;
+            font-weight: 600;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 10px;
+        }
+        .examples__grid {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        .example-btn {
+            flex: 1;
+            min-width: 180px;
+            padding: 12px 16px;
+            background: var(--bg-card-alt);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-secondary);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.82rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all var(--transition);
+            text-align: left;
+            line-height: 1.4;
+        }
+        .example-btn:hover {
+            border-color: var(--accent);
+            color: var(--text-primary);
+            background: rgba(99, 102, 241, 0.06);
+            transform: translateY(-1px);
+        }
+
+        /* ── Results ──────────────────────────────────────── */
+        #results-section {
+            display: none;
+            animation: fadeSlideUp 0.45s ease-out;
+        }
+        #results-section.visible { display: block; }
+
+        @keyframes fadeSlideUp {
+            from { opacity: 0; transform: translateY(16px); }
+            to   { opacity: 1; transform: translateY(0); }
+        }
+
+        .results-header {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+        .results-header h2 {
+            font-size: 1.1rem;
+            font-weight: 700;
+            color: var(--text-primary);
+        }
+        .relevance-chip {
+            display: inline-flex;
+            align-items: center;
+            gap: 5px;
+            padding: 4px 14px;
+            border-radius: 100px;
+            font-size: 0.78rem;
+            font-weight: 600;
+        }
+        .relevance-chip.yes {
+            background: var(--green-bg);
+            color: var(--green);
+            border: 1px solid rgba(52, 211, 153, 0.2);
+        }
+        .relevance-chip.no {
+            background: var(--red-bg);
+            color: var(--red);
+            border: 1px solid rgba(248, 113, 113, 0.2);
+        }
+
+        /* Results grid */
+        .result-grid {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 12px;
+        }
+        .result-field {
+            background: var(--bg-card-alt);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 14px 16px;
+        }
+        .result-field.full-width {
+            grid-column: 1 / -1;
+        }
+        .result-field__label {
+            font-size: 0.7rem;
+            font-weight: 600;
+            color: var(--text-dim);
+            text-transform: uppercase;
+            letter-spacing: 0.06em;
+            margin-bottom: 6px;
+        }
+        .result-field__value {
+            font-size: 0.9rem;
+            color: var(--text-primary);
+            font-weight: 500;
+            word-break: break-word;
+        }
+        .result-field__value.tag {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: 0.82rem;
+        }
+        .result-field__value.tag.green {
+            background: var(--green-bg);
+            color: var(--green);
+        }
+        .result-field__value.tag.red {
+            background: var(--red-bg);
+            color: var(--red);
+        }
+        .result-field__value.tag.amber {
+            background: var(--amber-bg);
+            color: var(--amber);
+        }
+        .result-field__value.tag.accent {
+            background: rgba(99, 102, 241, 0.1);
+            color: var(--accent-bright);
+        }
+        .fp-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+        .fp-chip {
+            padding: 4px 10px;
+            border-radius: 6px;
+            font-size: 0.78rem;
+            font-weight: 600;
+            background: rgba(251, 191, 36, 0.1);
+            color: var(--amber);
+            border: 1px solid rgba(251, 191, 36, 0.15);
+        }
+        .evidence-quote {
+            font-style: italic;
+            color: var(--accent-bright);
+            border-left: 3px solid var(--accent);
+            padding-left: 12px;
+            margin-top: 2px;
+        }
+
+        /* ── Error ────────────────────────────────────────── */
+        .error-banner {
+            display: none;
+            background: var(--red-bg);
+            border: 1px solid rgba(248, 113, 113, 0.2);
+            border-radius: var(--radius-sm);
+            padding: 14px 18px;
+            color: var(--red);
+            font-size: 0.88rem;
+            margin-top: 16px;
+            animation: fadeSlideUp 0.3s ease-out;
+        }
+        .error-banner.visible { display: block; }
+
+        /* ── Footer ───────────────────────────────────────── */
+        .footer {
+            text-align: center;
+            margin-top: 48px;
+            color: var(--text-dim);
+            font-size: 0.78rem;
+        }
+        .footer a {
+            color: var(--accent);
+            text-decoration: none;
+        }
+        .footer a:hover { text-decoration: underline; }
+
+        /* ── JSON Toggle ──────────────────────────────────── */
+        .json-toggle {
+            margin-top: 16px;
+            text-align: right;
+        }
+        .json-toggle button {
+            background: none;
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            color: var(--text-dim);
+            font-family: 'Inter', sans-serif;
+            font-size: 0.75rem;
+            font-weight: 500;
+            padding: 6px 14px;
+            cursor: pointer;
+            transition: all var(--transition);
+        }
+        .json-toggle button:hover {
+            border-color: var(--accent);
+            color: var(--accent-bright);
+        }
+        .json-raw {
+            display: none;
+            margin-top: 12px;
+            background: var(--bg-input);
+            border: 1px solid var(--border);
+            border-radius: var(--radius-sm);
+            padding: 16px;
+            font-family: 'JetBrains Mono', 'Fira Code', monospace;
+            font-size: 0.8rem;
+            color: var(--text-secondary);
+            white-space: pre-wrap;
+            word-break: break-all;
+            overflow-x: auto;
+            max-height: 320px;
+            line-height: 1.5;
+        }
+        .json-raw.visible { display: block; }
+
+        /* ── Responsive ───────────────────────────────────── */
+        @media (max-width: 640px) {
+            .container { padding: 28px 16px 60px; }
+            .card { padding: 22px 18px; }
+            .header h1 { font-size: 1.65rem; }
+            .result-grid { grid-template-columns: 1fr; }
+            .examples__grid { flex-direction: column; }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <!-- Header -->
+        <header class="header">
+            <div class="header__badge">
+                <span>🔬</span> Discovery Engine Classifier
+            </div>
+            <h1>Google Photos<br>Retrieval Failure Classifier</h1>
+            <p class="header__subtitle">
+                Paste a real or example Google Photos review to see how our discovery engine classifies retrieval failures.
+            </p>
+        </header>
+
+        <!-- Input Card -->
+        <div class="card">
+            <label class="input-label" for="review-input">Review / Post Text</label>
+            <textarea
+                id="review-input"
+                placeholder="Paste a Google Photos review or post here…"
+                spellcheck="false"
+            ></textarea>
+
+            <button class="btn-classify" id="classify-btn" onclick="classify()">
+                <div class="spinner"></div>
+                <span class="btn-text">Classify Review</span>
+            </button>
+
+            <div class="error-banner" id="error-banner"></div>
+
+            <!-- Examples -->
+            <div class="examples">
+                <div class="examples__title">Try an example</div>
+                <div class="examples__grid">
+                    {% for ex in examples %}
+                    <button class="example-btn" onclick="fillExample({{ loop.index0 }})">
+                        {{ ex.label }}
+                    </button>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Results Card -->
+        <div class="card" id="results-section">
+            <div class="results-header">
+                <h2>Classification Result</h2>
+                <span class="relevance-chip" id="relevance-chip"></span>
+            </div>
+
+            <div class="result-grid" id="result-grid"></div>
+
+            <div class="json-toggle">
+                <button onclick="toggleJson()">{ } View Raw JSON</button>
+            </div>
+            <pre class="json-raw" id="json-raw"></pre>
+        </div>
+
+        <!-- Footer -->
+        <footer class="footer">
+            Built for the Google Photos Discovery Model pipeline ·
+            <a href="https://github.com/Princeguptaa/Googlephotos_DiscoveryEngine" target="_blank">GitHub</a>
+        </footer>
+    </div>
+
+    <script>
+        const EXAMPLES = {{ examples | tojson }};
+
+        function fillExample(idx) {
+            document.getElementById('review-input').value = EXAMPLES[idx].text;
+            // Clear previous results
+            document.getElementById('results-section').classList.remove('visible');
+            document.getElementById('error-banner').classList.remove('visible');
+        }
+
+        async function classify() {
+            const input = document.getElementById('review-input');
+            const btn = document.getElementById('classify-btn');
+            const errorBanner = document.getElementById('error-banner');
+            const resultsSection = document.getElementById('results-section');
+
+            const text = input.value.trim();
+            if (!text) {
+                showError('Please paste a review before classifying.');
+                return;
+            }
+
+            // Loading state
+            btn.classList.add('loading');
+            btn.disabled = true;
+            errorBanner.classList.remove('visible');
+            resultsSection.classList.remove('visible');
+
+            try {
+                const res = await fetch('/classify', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ review_text: text })
+                });
+
+                const data = await res.json();
+
+                if (!res.ok) {
+                    showError(data.error || 'Something went wrong.');
+                    return;
+                }
+
+                renderResults(data.result);
+            } catch (err) {
+                showError('Network error — check your connection and try again.');
+            } finally {
+                btn.classList.remove('loading');
+                btn.disabled = false;
+            }
+        }
+
+        function showError(msg) {
+            const banner = document.getElementById('error-banner');
+            banner.textContent = msg;
+            banner.classList.add('visible');
+        }
+
+        function renderResults(r) {
+            const section = document.getElementById('results-section');
+            const chip = document.getElementById('relevance-chip');
+            const grid = document.getElementById('result-grid');
+            const jsonRaw = document.getElementById('json-raw');
+
+            // Relevance chip
+            const isRelevant = r.is_relevant === 'yes';
+            chip.className = 'relevance-chip ' + (isRelevant ? 'yes' : 'no');
+            chip.innerHTML = isRelevant ? '✓ Relevant' : '✗ Not Relevant';
+
+            // Build fields
+            const KEY_FIELDS = [
+                { key: 'content_type',        label: 'Content Type',        highlight: 'accent' },
+                { key: 'scenario_type',       label: 'Scenario Type',       highlight: 'amber'  },
+                { key: 'retrieval_scenario',  label: 'Retrieval Scenario',  full: false },
+                { key: 'outcome',             label: 'Outcome',             highlight: 'accent' },
+                { key: 'what_they_remembered',label: 'What They Remembered',full: false },
+                { key: 'what_they_forgot',    label: 'What They Forgot',    full: false },
+                { key: 'search_attempt',      label: 'Search Attempt',      full: false },
+                { key: 'workaround_used',     label: 'Workaround Used',     full: false },
+            ];
+
+            let html = '';
+
+            // Key fields
+            KEY_FIELDS.forEach(f => {
+                const val = r[f.key];
+                if (val === undefined || val === null) return;
+                const cls = f.full === false ? '' : ' full-width';
+                const valHtml = f.highlight
+                    ? `<div class="result-field__value tag ${f.highlight}">${esc(String(val))}</div>`
+                    : `<div class="result-field__value">${esc(String(val))}</div>`;
+
+                html += `<div class="result-field${cls}">
+                    <div class="result-field__label">${f.label}</div>
+                    ${valHtml}
+                </div>`;
+            });
+
+            // Failure point(s)
+            if (r.failure_point) {
+                const fps = Array.isArray(r.failure_point) ? r.failure_point : [r.failure_point];
+                const chipsHtml = fps.map(fp => `<span class="fp-chip">${esc(fp)}</span>`).join('');
+                html += `<div class="result-field full-width">
+                    <div class="result-field__label">Failure Point</div>
+                    <div class="fp-list">${chipsHtml}</div>
+                </div>`;
+            }
+
+            // Evidence quote
+            if (r.evidence_quote) {
+                html += `<div class="result-field full-width">
+                    <div class="result-field__label">Evidence Quote</div>
+                    <div class="evidence-quote">"${esc(r.evidence_quote)}"</div>
+                </div>`;
+            }
+
+            grid.innerHTML = html;
+
+            // Raw JSON
+            jsonRaw.textContent = JSON.stringify(r, null, 2);
+            jsonRaw.classList.remove('visible');
+
+            section.classList.add('visible');
+            section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+
+        function toggleJson() {
+            document.getElementById('json-raw').classList.toggle('visible');
+        }
+
+        function esc(str) {
+            const d = document.createElement('div');
+            d.textContent = str;
+            return d.innerHTML;
+        }
+
+        // Allow Ctrl+Enter to submit
+        document.getElementById('review-input').addEventListener('keydown', e => {
+            if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') classify();
+        });
+    </script>
+</body>
+</html>
