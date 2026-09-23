@@ -88,55 +88,68 @@ def classify():
     if not GROQ_API_KEY:
         return jsonify({"error": "GROQ_API_KEY is not configured on the server."}), 500
 
-    try:
-        client = Groq(api_key=GROQ_API_KEY)
-        response = client.chat.completions.create(
-            model=MODEL,
-            messages=[
-                {"role": "system", "content": SYSTEM_PROMPT},
-                {"role": "user", "content": review_text}
-            ],
-            temperature=0.0,
-            max_tokens=1024,
-        )
-        choice = response.choices[0]
-        content = choice.message.content or ""
-        content = content.strip()
+    client = Groq(api_key=GROQ_API_KEY)
 
-        if not content:
-            # Debug: log the full response structure
-            print(f"[DEBUG] Empty content. Full choice: {choice}")
-            return jsonify({
-                "error": "The model returned an empty response. This can happen with reasoning models. Please try again."
-            }), 502
+    candidate_models = [MODEL]
+    for fallback in ["openai/gpt-oss-120b", "qwen/qwen3.8-27b"]:
+        if fallback not in candidate_models:
+            candidate_models.append(fallback)
 
-        # Strip markdown code fences if present
-        if content.startswith("```json"):
-            content = content[7:]
-        if content.startswith("```"):
-            content = content[3:]
-        if content.endswith("```"):
-            content = content[:-3]
+    last_error = None
+    for model_name in candidate_models:
+        try:
+            kwargs = {
+                "model": model_name,
+                "messages": [
+                    {"role": "system", "content": SYSTEM_PROMPT},
+                    {"role": "user", "content": review_text}
+                ],
+                "temperature": 0.0,
+                "max_tokens": 1024,
+            }
+            if model_name.startswith("openai/gpt-oss"):
+                kwargs["reasoning_effort"] = "low"
 
-        result = json.loads(content.strip())
+            response = client.chat.completions.create(**kwargs)
+            choice = response.choices[0]
+            content = choice.message.content or ""
+            content = content.strip()
 
-        # Normalize failure_point to list
-        fp = result.get("failure_point")
-        if isinstance(fp, str):
-            result["failure_point"] = [fp]
-        elif not isinstance(fp, list):
-            result["failure_point"] = ["unknown_unclear"]
+            if not content:
+                continue
 
-        # Ensure scenario_type exists
-        if "scenario_type" not in result:
-            result["scenario_type"] = None
+            # Strip markdown code fences if present
+            if content.startswith("```json"):
+                content = content[7:]
+            if content.startswith("```"):
+                content = content[3:]
+            if content.endswith("```"):
+                content = content[:-3]
 
-        return jsonify({"result": result})
+            result = json.loads(content.strip())
 
-    except json.JSONDecodeError:
-        return jsonify({"error": "The model returned invalid JSON. Please try again.", "raw": content}), 502
-    except Exception as e:
-        return jsonify({"error": f"Classification failed: {str(e)}"}), 500
+            # Normalize failure_point to list
+            fp = result.get("failure_point")
+            if isinstance(fp, str):
+                result["failure_point"] = [fp]
+            elif not isinstance(fp, list):
+                result["failure_point"] = ["unknown_unclear"]
+
+            # Ensure scenario_type exists
+            if "scenario_type" not in result:
+                result["scenario_type"] = None
+
+            return jsonify({"result": result, "model_used": model_name})
+
+        except json.JSONDecodeError as jde:
+            last_error = f"JSON decode error with {model_name}: {str(jde)}"
+            continue
+        except Exception as e:
+            last_error = f"Error with {model_name}: {str(e)}"
+            # If rate limit or token limit, proceed to next fallback model
+            continue
+
+    return jsonify({"error": f"Classification failed across models: {last_error}"}), 500
 
 
 # ── Local dev entry point ──────────────────────────────────────────
